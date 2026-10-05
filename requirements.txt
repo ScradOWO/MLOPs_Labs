@@ -1,0 +1,5 @@
+tensorflow>=2.16
+tensorboard>=2.16
+matplotlib
+numpy
+jupyter
