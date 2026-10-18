@@ -5,3 +5,4 @@ My lab submissions for the MLOps course. Each lab is in its own folder with its 
 | Lab | Topic | Base lab |
 |---|---|---|
 | [TensorBoard_HParams_Lab](TensorBoard_HParams_Lab/) | Hyperparameter tuning a CIFAR-10 CNN with the TensorBoard HParams dashboard | Tensorflow_Labs / TensorBoard / Lab4 |
+| [Snorkel_Data_Labeling_Lab](Snorkel_Data_Labeling_Lab/) | Weak-supervision spam labeling with Snorkel, plus a labeling-function quality gate (dev-accuracy and duplicate checks) | Data_Labs / Data_Labeling_Labs |
