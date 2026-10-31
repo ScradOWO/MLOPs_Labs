@@ -1,0 +1,5 @@
+# Keep the build context to what the Dockerfile COPYs.
+*
+!requirements.txt
+!src/
+src/**/__pycache__

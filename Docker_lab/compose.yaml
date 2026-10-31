@@ -1,0 +1,44 @@
+# train -> api -> smoke-test, wired by depends_on conditions.
+# `train` writes the model into the `model` volume; `api` serves whatever is in it,
+# so you can retrain with new hyperparameters without rebuilding the API image.
+
+services:
+  train:
+    build:
+      context: .
+      target: trainer
+    image: wine-trainer:latest
+    command: ["python", "train.py"]
+    environment:
+      N_ESTIMATORS: ${N_ESTIMATORS:-200}
+      MAX_DEPTH: ${MAX_DEPTH:-0}
+      MIN_ACCURACY: ${MIN_ACCURACY:-0.90}
+    volumes:
+      - model:/app/model
+
+  api:
+    build:
+      context: .
+      target: serving
+    image: wine-api:latest
+    ports:
+      - "${API_PORT:-8000}:8000"
+    volumes:
+      - model:/app/model:ro
+    depends_on:
+      train:
+        condition: service_completed_successfully
+    restart: unless-stopped
+
+  smoke-test:
+    image: wine-api:latest
+    command: ["python", "/tests/smoke_test.py", "http://api:8000"]
+    volumes:
+      - ./tests:/tests:ro
+    depends_on:
+      api:
+        condition: service_healthy
+    profiles: ["test"]
+
+volumes:
+  model:

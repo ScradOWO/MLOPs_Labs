@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Wine Classifier</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 640px; margin: 2rem auto; padding: 0 1rem; }
+    form { display: grid; grid-template-columns: 1fr 8rem; gap: .4rem 1rem; align-items: center; }
+    button { grid-column: span 2; padding: .6rem; font-size: 1rem; }
+    pre { background: #f3f3f3; padding: 1rem; }
+  </style>
+</head>
+<body>
+  <h1>Wine Cultivar Classifier</h1>
+  <p>{{ metrics.model }} &middot; CV accuracy {{ metrics.cv_accuracy }} &middot; test accuracy {{ metrics.test_accuracy }}</p>
+  {# Pre-filled with row 0 of the wine dataset (a cultivar_class_0 wine). #}
+  {% set sample = [14.23, 1.71, 2.43, 15.6, 127, 2.8, 3.06, 0.28, 2.29, 5.64, 1.04, 3.92, 1065] %}
+  <form id="f">
+    {% for name in features %}
+      <label for="{{ name }}">{{ name }}</label>
+      <input id="{{ name }}" name="{{ name }}" type="number" step="any" required value="{{ sample[loop.index0] }}">
+    {% endfor %}
+    <button>Predict</button>
+  </form>
+  <pre id="out">Result appears here.</pre>
+  <script>
+    document.getElementById("f").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const res = await fetch("/predict", { method: "POST", body: new FormData(e.target) });
+      document.getElementById("out").textContent = JSON.stringify(await res.json(), null, 2);
+    });
+  </script>
+</body>
+</html>

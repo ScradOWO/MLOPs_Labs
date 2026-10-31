@@ -6,3 +6,4 @@ My lab submissions for the MLOps course. Each lab is in its own folder with its 
 |---|---|---|
 | [TensorBoard_HParams_Lab](TensorBoard_HParams_Lab/) | Hyperparameter tuning a CIFAR-10 CNN with the TensorBoard HParams dashboard | Tensorflow_Labs / TensorBoard / Lab4 |
 | [Snorkel_Data_Labeling_Lab](Snorkel_Data_Labeling_Lab/) | Weak-supervision spam labeling with Snorkel, plus a labeling-function quality gate (dev-accuracy and duplicate checks) | Data_Labs / Data_Labeling_Labs |
+| [Docker_lab](Docker_lab/) | Multi-stage Docker build with a build-time model quality gate, slim non-root health-checked serving image, and a Compose train → api → smoke-test pipeline (Wine classifier) | Docker_Labs / Lab2 |
