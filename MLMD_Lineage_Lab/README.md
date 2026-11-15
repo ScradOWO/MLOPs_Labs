@@ -85,7 +85,7 @@ Run every command below from inside the `MLMD_Lineage_Lab` folder.
 
 ```bash
 uv venv --python 3.12 .venv
-source .venv/bin/activate
+source .venv/bin/activate          # fish shell: source .venv/bin/activate.fish
 uv pip install -r requirements.txt
 ```
 
