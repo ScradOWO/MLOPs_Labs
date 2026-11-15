@@ -24,9 +24,11 @@ on:
         default: false
 
 # A newer push to the same branch cancels the older, now-pointless run.
+# Manual runs share one queue and never cancel each other, so a release finishes before the next
+# manual run reads its baseline.
 concurrency:
-  group: github-actions-lab-${{ github.ref }}
-  cancel-in-progress: true
+  group: github-actions-lab-${{ github.event_name == 'workflow_dispatch' && 'manual' || github.ref }}
+  cancel-in-progress: ${{ github.event_name != 'workflow_dispatch' }}
 
 permissions:
   contents: read

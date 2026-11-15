@@ -22,7 +22,7 @@ The workflow is [`.github/workflows/github_actions_lab.yml`](../.github/workflow
 | Model storage / versioning | `git commit` + `git push` of `.joblib` files into the repo from CI (the repo grows on every push) | **workflow artifact** on every run, and a **GitHub Release** `model-<run number>` with `model.joblib` + `metrics.json` only when you choose to promote |
 | Baseline | none | downloaded at run time from the latest `model-*` release with `gh release download` |
 | Permissions | default token, pushes to `main` | `contents: read` for everything, `contents: write` only in the `release` job |
-| Repeated pushes | every push runs to the end | `concurrency:` cancels the older run on the same branch |
+| Repeated runs | every push runs to the end | `concurrency:` cancels an older push/PR run on the same branch; manual runs share one queue and run in order, so a release always finishes before the next manual run reads its baseline |
 | Speed | dependencies reinstalled each time | pip cache keyed on `requirements.txt` |
 | Action versions | `checkout@v2/v4`, `setup-python@v2/v4`, Python 3.9 | `checkout@v7`, `setup-python@v7`, `upload-artifact@v7`, `download-artifact@v8`, Python 3.12 |
 | Data | `make_classification` with `n_samples=random.randint(0, 2000)`, which can be 0 and crash | scikit-learn's bundled **digits** dataset (1,797 images of handwritten 0–9), fixed stratified split |
@@ -144,7 +144,7 @@ gh workflow run github_actions_lab.yml -f release=true
 
 When it finishes, the repo's **Releases** page has `model-<N>` with `model.joblib`, `metrics.json` and the gate report as release notes. From now on, every run is compared against this release.
 
-**3. Watch the gate block a regression.** Start a run with a deliberately weak model:
+**3. Watch the gate block a regression.** Start a run with a deliberately weak model. You can start it right after step 2: manual runs queue, so it waits for the release to finish and then compares against it.
 
 ```bash
 gh workflow run github_actions_lab.yml -f n_estimators=1 -f release=true
