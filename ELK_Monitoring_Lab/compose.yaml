@@ -88,6 +88,8 @@ services:
   drift-monitor:
     <<: *app
     command: ["python", "drift_monitor.py"]
+    healthcheck:
+      disable: true  # the image's HEALTHCHECK probes the API, which only model-api runs
     environment:
       INTERVAL: ${DRIFT_INTERVAL:-15}
       WINDOW: ${DRIFT_WINDOW:-60}
@@ -100,6 +102,8 @@ services:
   traffic:
     <<: *app
     command: ["python", "traffic.py"]
+    healthcheck:
+      disable: true
     environment:
       PHASES: ${PHASES:-normal:60,drift:60}
       RATE: ${RATE:-10}
@@ -110,6 +114,8 @@ services:
   verify:
     <<: *app
     command: ["python", "verify.py"]
+    healthcheck:
+      disable: true
     depends_on:
       kibana:
         condition: service_healthy
