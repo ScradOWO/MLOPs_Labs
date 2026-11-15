@@ -1,0 +1,120 @@
+# ELK model-monitoring stack.
+#   model-api ─ JSON logs ─▶ [logs volume] ─▶ logstash ─▶ elasticsearch ◀─ kibana (dashboard)
+#   traffic ─ requests ─▶ model-api            drift-monitor ─ reads ES, writes drift logs ─▶ [logs volume]
+# Security is off for a local lab, so every port is bound to 127.0.0.1 only.
+
+x-app: &app
+  image: elk-lab-app:latest
+  volumes:
+    - logs:/logs
+
+services:
+  elasticsearch:
+    image: elasticsearch:9.5.5
+    environment:
+      discovery.type: single-node
+      xpack.security.enabled: "false"
+      xpack.ml.enabled: "false"
+      cluster.routing.allocation.disk.threshold_enabled: "false"  # don't go read-only on a nearly full laptop disk
+      ES_JAVA_OPTS: -Xms512m -Xmx512m
+    ports:
+      - "127.0.0.1:9200:9200"
+    volumes:
+      - esdata:/usr/share/elasticsearch/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS 'http://localhost:9200/_cluster/health?wait_for_status=yellow&timeout=2s' >/dev/null"]
+      interval: 5s
+      timeout: 5s
+      retries: 60
+
+  kibana:
+    image: kibana:9.5.5
+    environment:
+      ELASTICSEARCH_HOSTS: http://elasticsearch:9200
+      TELEMETRY_OPTIN: "false"
+      TELEMETRY_ALLOWCHANGINGOPTINSTATUS: "false"   # no usage-collection banner
+      SECURITY_SHOWINSECURECLUSTERWARNING: "false"  # no "your data is not secure" toast (local lab only)
+    ports:
+      - "127.0.0.1:5601:5601"
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:5601/api/status | grep -q '\"level\":\"available\"'"]
+      interval: 5s
+      timeout: 5s
+      retries: 60
+
+  # One-shot: index template, Kibana data views and the dashboard.
+  setup:
+    image: elasticsearch:9.5.5
+    entrypoint: ["bash", "/setup/setup.sh"]
+    volumes:
+      - ./kibana:/setup:ro
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+      kibana:
+        condition: service_healthy
+
+  model-api:
+    <<: *app
+    build: ./app
+    ports:
+      - "127.0.0.1:8000:8000"
+
+  logstash:
+    image: logstash:9.5.5
+    environment:
+      LS_JAVA_OPTS: -Xms256m -Xmx256m
+      XPACK_MONITORING_ENABLED: "false"
+    volumes:
+      - ./logstash:/usr/share/logstash/pipeline:ro
+      - logs:/logs:ro
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+      setup:
+        condition: service_completed_successfully  # index template must exist before the first document
+      # model-api must create the logs volume first, so it is initialised with the app user's /logs ownership.
+      model-api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:9600/ >/dev/null"]
+      interval: 5s
+      timeout: 5s
+      retries: 60
+
+  drift-monitor:
+    <<: *app
+    command: ["python", "drift_monitor.py"]
+    environment:
+      INTERVAL: ${DRIFT_INTERVAL:-15}
+      WINDOW: ${DRIFT_WINDOW:-60}
+      PSI_ALERT: ${PSI_ALERT:-0.2}
+    depends_on:
+      logstash:
+        condition: service_healthy
+    restart: unless-stopped
+
+  traffic:
+    <<: *app
+    command: ["python", "traffic.py"]
+    environment:
+      PHASES: ${PHASES:-normal:60,drift:60}
+      RATE: ${RATE:-10}
+    depends_on:
+      logstash:
+        condition: service_healthy
+
+  verify:
+    <<: *app
+    command: ["python", "verify.py"]
+    depends_on:
+      kibana:
+        condition: service_healthy
+    profiles: ["test"]
+
+volumes:
+  logs:
+  esdata:
